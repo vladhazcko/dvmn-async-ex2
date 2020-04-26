@@ -30,8 +30,11 @@ def draw(canvas):
     curses.curs_set(False)
     canvas.border()
     canvas.nodelay(True)
-    y_max, x_max = canvas.getmaxyx()
+
+    # getmaxyx() -> return a tuple (y, x) of the height and width of the window.
+    window_height, window_width = canvas.getmaxyx()
     y_min, x_min = canvas.getbegyx()
+    y_max, x_max = y_min + window_height - 1, x_min + window_width - 1
     ship_height, ship_width = get_frame_size(rocket_frames[0])
     star_height = star_width = 1
 
@@ -127,7 +130,7 @@ async def run_spaceship(canvas, row, column):
     delta_y, delta_x = canvas.getmaxyx()
     y_min, x_min = canvas.getbegyx()
     y_max, x_max = y_min + delta_y - ship_height - 1, x_min + delta_x - ship_width - 1
-    year_of_the_gun = 2020
+    year_of_the_gun = 1955
 
     global global_coroutines
     while True:
@@ -153,7 +156,9 @@ async def run_spaceship(canvas, row, column):
 
 async def fly_garbage(canvas, column, garbage_frame, speed=0.2):
     """Animate garbage, flying from top to bottom. Сolumn position will stay same, as specified on start."""
-    rows_number, columns_number = canvas.getmaxyx()
+
+    height, width = canvas.getmaxyx()
+    rows_number, columns_number = height, width
     row_size, column_size = get_frame_size(garbage_frame)
 
     column = max(column, 0)
@@ -171,6 +176,7 @@ async def fly_garbage(canvas, column, garbage_frame, speed=0.2):
         if obstacle in global_obstacles_in_last_collisions:
             global_obstacles_in_last_collisions.remove(obstacle)
             await explode(canvas, row + row_size // 2, column + column_size // 2)
+            global_obstacles.remove(obstacle)
             return
         row += speed
         obstacle.row = row
@@ -179,13 +185,15 @@ async def fly_garbage(canvas, column, garbage_frame, speed=0.2):
 
 
 async def fill_orbit_with_garbage(canvas):
-    garbage_coroutines = []
+    global global_coroutines
+
     while not get_garbage_delay_tics(global_year):
         await asyncio.sleep(0)
 
     while True:
-        y_max, x_max = canvas.getmaxyx()
+        height, width = canvas.getmaxyx()
         y_min, x_min = canvas.getbegyx()
+        y_max, x_max = y_min + height - 1, x_min + width - 1
 
         garbage_frame = random.choice(garbage_frames)
         garbage_height, garbage_width = get_frame_size(garbage_frame)
@@ -195,15 +203,10 @@ async def fill_orbit_with_garbage(canvas):
         column = random.randint(x_start, x_end)
 
         garbage_coroutine = fly_garbage(canvas, column, garbage_frame)
-        garbage_coroutines.append(garbage_coroutine)
+        global_coroutines.append(garbage_coroutine)
 
         count_steps_to_add_coroutine = get_garbage_delay_tics(global_year)
         for _ in range(count_steps_to_add_coroutine):
-            for garbage_coroutine in garbage_coroutines.copy():
-                try:
-                    garbage_coroutine.send(None)
-                except StopIteration:
-                    garbage_coroutines.remove(garbage_coroutine)
             await asyncio.sleep(0)
 
 
