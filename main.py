@@ -130,7 +130,7 @@ async def run_spaceship(canvas, row, column):
     delta_y, delta_x = canvas.getmaxyx()
     y_min, x_min = canvas.getbegyx()
     y_max, x_max = y_min + delta_y - ship_height - 1, x_min + delta_x - ship_width - 1
-    year_of_the_gun = 1955
+    year_of_the_gun = 2020
 
     global global_coroutines
     while True:
